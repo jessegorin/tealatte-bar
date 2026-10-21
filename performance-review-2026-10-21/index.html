@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TeaLatte Bar | Platform Performance Review</title>
+<style>
+  :root {
+    --navy:#001f52; --heading-navy:#0a2540; --brand-blue:#1B51A4;
+    --accent-blue:#3B82F6; --accent-cyan:#06B6D4;
+    --ink:#0a1628; --ink-body:#3b4563; --ink-muted:#6b7a99; --ink-subtle:#8b95ad;
+    --surface:#fff; --surface-raised:#f8f9fc; --surface-cool:#f0f3fa;
+    --border:#e2e8f0; --border-subtle:#eef2f7;
+    --good:#1d7a44; --good-bg:#e7f4ec; --watch:#9a6207; --watch-bg:#fdf4e3;
+    --font-head:"Lato","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-data:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface);color:var(--ink-body);
+       font-family:var(--font-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:var(--font-head);color:var(--heading-navy);margin:0;text-wrap:balance}
+
+  /* masthead */
+  .masthead{background:linear-gradient(165deg,#020817 0%,#001131 35%,#001f52 68%,#0c2d6b 100%);
+            padding:54px 0 60px;position:relative;overflow:hidden}
+  .masthead::after{content:"";position:absolute;inset:0;opacity:.04;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);
+    background-size:60px 60px}
+  .orb{position:absolute;width:620px;height:620px;right:-190px;top:-290px;border-radius:50%;
+       background:radial-gradient(circle,rgba(59,130,246,.16) 0%,transparent 70%);filter:blur(60px);pointer-events:none}
+  .inner{max-width:1080px;margin:0 auto;padding:0 32px;position:relative;z-index:1}
+  .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#38bdf8;margin:0 0 14px}
+  .masthead h1{color:#fff;font-size:2.9rem;font-weight:900;line-height:1.07;letter-spacing:-.02em;max-width:15ch}
+  .lede{color:#b4c6e0;font-size:1.08rem;line-height:1.6;max-width:62ch;margin:18px 0 0}
+  .meta-strip{display:flex;flex-wrap:wrap;gap:30px;margin-top:32px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12)}
+  .meta-item .k{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:#7ba3d4;margin-bottom:4px}
+  .meta-item .v{color:#fff;font-size:14.5px;font-weight:600}
+
+  /* kpi band */
+  .kpi-band{max-width:1080px;margin:-30px auto 0;padding:0 32px;position:relative;z-index:2;
+            display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .kpi{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px 20px 18px;
+       box-shadow:0 8px 24px rgba(10,22,40,.08);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;
+               background:linear-gradient(135deg,#1B51A4,#3B82F6,#06B6D4)}
+  .kpi .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--ink-muted);margin-bottom:8px}
+  .kpi .value{font-family:var(--font-head);font-size:1.95rem;font-weight:800;color:var(--navy);line-height:1.05;letter-spacing:-.02em}
+  .kpi .value .unit{font-size:1.15rem;font-weight:700;vertical-align:.32em;margin-right:1px}
+  .kpi .sub{font-size:12.5px;color:var(--ink-muted);margin-top:7px;line-height:1.45}
+  .up{color:var(--good);font-weight:700}
+  .dn{color:var(--watch);font-weight:700}
+
+  /* sections */
+  section{max-width:1080px;margin:0 auto;padding:52px 32px 0}
+  .sec-head{margin-bottom:22px}
+  .sec-head .eyebrow{color:var(--accent-blue)}
+  .sec-head h2{font-size:1.85rem;font-weight:800;line-height:1.2;letter-spacing:-.015em}
+  .sec-head p{color:var(--ink-muted);max-width:66ch;margin:10px 0 0;font-size:1.02rem}
+
+  .panel{background:linear-gradient(180deg,#fff 0%,#f8f9fc 55%,#fff 100%);
+         border:1px solid var(--border);border-radius:18px;padding:26px 24px 20px;margin-top:6px}
+  .panel.tight{padding:22px 24px 16px}
+  .chart-title{font-family:var(--font-head);font-size:14.5px;font-weight:700;color:var(--heading-navy);margin:0 0 2px}
+  .chart-note{font-size:12.5px;color:var(--ink-muted);margin:0 0 14px}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .ax{font-size:11px;fill:var(--ink-subtle);font-family:var(--font-data)}
+  .val{font-size:10.5px;fill:var(--ink-muted);font-family:var(--font-data);
+       paint-order:stroke;stroke:#fbfcfe;stroke-width:3.5px;stroke-linejoin:round}
+  .val.strong{fill:var(--navy);font-weight:700}
+  .mon{font-size:11px;fill:var(--ink-muted)}
+  .era{font-size:11px;fill:var(--ink-subtle);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+  .era.strong{fill:var(--brand-blue)}
+  .grp{font-size:13px;fill:var(--heading-navy);font-weight:700}
+  .grp .up{fill:var(--good)}
+  .annot{font-size:11px;fill:var(--heading-navy);font-weight:600}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;margin:14px 0 2px;font-size:12.5px;color:var(--ink-body)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .dash{width:20px;border-top:2px dashed #0a2540;opacity:.6;display:inline-block}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+     color:var(--ink-muted);padding:0 12px 9px;border-bottom:1px solid var(--border)}
+  td{padding:9px 12px;border-bottom:1px solid var(--border-subtle);color:var(--ink-body)}
+  td.n{font-family:var(--font-data);text-align:right;color:var(--ink);white-space:nowrap}
+  td.t{color:var(--ink-muted);font-size:13px}
+  tr.hl td{background:#f2f6fd;font-weight:600;color:var(--navy)}
+  tr.tot td{border-top:1.5px solid var(--border);border-bottom:none;font-weight:700;color:var(--navy)}
+  .table-wrap{overflow-x:auto;margin-top:4px}
+  details{margin-top:14px}
+  summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--brand-blue);padding:6px 0}
+  summary:hover{color:var(--accent-blue)}
+
+  .note{border-left:3px solid var(--accent-blue);background:var(--surface-cool);
+        border-radius:0 12px 12px 0;padding:16px 20px;margin-top:18px;font-size:14.5px;color:var(--ink-body)}
+  .note.watch{border-left-color:#d9a441;background:var(--watch-bg)}
+  .note.good{border-left-color:var(--good);background:var(--good-bg)}
+  .note b{color:var(--heading-navy)}
+  .note .h{display:block;font-family:var(--font-head);font-weight:800;color:var(--heading-navy);
+           font-size:15px;margin-bottom:5px}
+
+  footer{max-width:1080px;margin:56px auto 0;padding:24px 32px 52px;border-top:1px solid var(--border);
+         color:var(--ink-subtle);font-size:12.5px}
+  footer b{color:var(--navy)}
+
+  @media (max-width:900px){
+    .kpi-band{grid-template-columns:repeat(2,1fr)}
+    .two{grid-template-columns:1fr}
+    .masthead h1{font-size:2.2rem}
+  }
+  @media (max-width:560px){
+    .masthead{padding:40px 0 52px}
+    .inner{padding:0 20px}
+    section{padding:40px 20px 0}
+    .kpi-band{grid-template-columns:1fr;padding:0 20px}
+    .masthead h1{font-size:1.9rem}
+    footer{padding:24px 20px 40px}
+  }
+  @media print{
+    body{font-size:12.5px}
+    .masthead{padding:30px 0 34px}
+    .masthead h1{font-size:2rem}
+    .kpi-band{margin-top:-22px;gap:10px}
+    .kpi{box-shadow:none}
+    section{padding:26px 24px 0;break-inside:avoid}
+    .panel{break-inside:avoid}
+    details{display:none}
+    .orb{display:none}
+  }
+  .seg{font-size:11.5px;font-family:var(--font-data);font-weight:600}
+  .val{font-size:12.5px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .prod{border:1px solid var(--border);border-radius:14px;padding:16px 18px 14px;background:#fff;position:relative;overflow:hidden}
+  .prod::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#1B51A4,#3B82F6,#06B6D4)}
+  .prod.avail{background:var(--surface-raised)}
+  .prod.avail::before{background:#cbd5e1}
+  .prod h3{font-size:15px;font-weight:800;margin:6px 0 4px}
+  .prod p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-muted)}
+  .tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;padding:2px 8px;border-radius:999px}
+  .live .tag{background:var(--good-bg);color:var(--good)}
+  .avail .tag{background:var(--surface-cool);color:var(--brand-blue)}
+  .tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:6px}
+  .tile{border:1px solid var(--border);border-radius:14px;padding:14px 14px 12px;background:#fff}
+  .tv{font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:var(--navy);line-height:1.1}
+  .tl{font-size:12px;color:var(--ink-muted);margin-top:4px}
+  table.steps td{vertical-align:top}
+  td.who{white-space:nowrap;font-weight:700;color:var(--navy);width:1%}
+  @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.tiles{grid-template-columns:repeat(3,1fr)}}
+  @media (max-width:560px){.grid{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}}
+  @media print{.prod,.tile{break-inside:avoid}}
+
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="orb"></div>
+  <div class="inner">
+    <p class="eyebrow">Chowly &middot; Platform Performance Review</p>
+    <h1>Your first three months on Chowly</h1>
+    <p class="lede">TeaLatte Bar went live on Chowly in early August 2026. This review covers every online order
+      Chowly sent to your Clover POS from August 1 through October 20, what your Google Ads are doing, and what
+      we are changing to grow your online sales.</p>
+    <div class="meta-strip">
+      <div class="meta-item"><span class="k">Prepared for</span><span class="v">TeaLatte Bar &middot; Frisco, TX</span></div>
+      <div class="meta-item"><span class="k">Reporting period</span><span class="v">Aug 1 &ndash; Oct 20, 2026</span></div>
+      <div class="meta-item"><span class="k">Report date</span><span class="v">October 21, 2026</span></div>
+      <div class="meta-item"><span class="k">Prepared by</span><span class="v">Jesse Gorin, Customer Success</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-band">
+  <div class="kpi">
+    <div class="label">Online orders through Chowly</div>
+    <div class="value">120</div>
+    <div class="sub">DoorDash, Uber Eats and your own site, all sent straight to Clover</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Online sales</div>
+    <div class="value"><span class="unit">$</span>1,893</div>
+    <div class="sub">Food and drink subtotal, before tax and tips</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Your own online ordering</div>
+    <div class="value"><span class="unit">$</span>511</div>
+    <div class="sub">37 orders &middot; 27% of online sales, with no marketplace commission</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Google Ads clicks</div>
+    <div class="value">941</div>
+    <div class="sub">Since August 20 &middot; plus 364 requests for directions</div>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Online sales</p>
+    <h2>Online sales by month and channel</h2>
+    <p>September was your strongest month so far. October is averaging $22.67 a day,
+      against $26.53 a day in September.</p>
+  </div>
+  <div class="panel">
+    <p class="chart-title">Completed online orders, subtotal by month</p>
+    <p class="chart-note">October covers the 1st through the 20th.</p>
+    <svg viewBox="0 0 880 330" role="img" aria-label="Online sales by month and channel, August 1 to October 20, 2026"><line x1="70" y1="262.0" x2="860" y2="262.0" stroke="#e8edf6"/><text x="58" y="266.0" text-anchor="end" class="ax">$0</text><line x1="70" y1="184.7" x2="860" y2="184.7" stroke="#e8edf6"/><text x="58" y="188.7" text-anchor="end" class="ax">$300</text><line x1="70" y1="107.3" x2="860" y2="107.3" stroke="#e8edf6"/><text x="58" y="111.3" text-anchor="end" class="ax">$600</text><line x1="70" y1="30.0" x2="860" y2="30.0" stroke="#e8edf6"/><text x="58" y="34.0" text-anchor="end" class="ax">$900</text><rect x="130" y="223.8" width="150" height="38.2" fill="#1B51A4"><title>Aug: Your online ordering $148.08 (15 orders)</title></rect><text x="205.0" y="246.9" text-anchor="middle" class="seg" fill="#fff">$148</text><rect x="130" y="132.0" width="150" height="91.8" fill="#06B6D4"><title>Aug: DoorDash $356.25 (29 orders)</title></rect><text x="205.0" y="181.9" text-anchor="middle" class="seg" fill="#fff">$356</text><rect x="130" y="96.1" width="150" height="35.9" fill="#9cc3ec"><title>Aug: Uber Eats $139.40 (8 orders)</title></rect><text x="205.0" y="118.0" text-anchor="middle" class="seg" fill="#0a2540">$139</text><text x="205.0" y="86.1" text-anchor="middle" class="val strong">$644</text><text x="205.0" y="282" text-anchor="middle" class="mon">Aug</text><rect x="390" y="189.9" width="150" height="72.1" fill="#1B51A4"><title>Sep: Your online ordering $279.70 (16 orders)</title></rect><text x="465.0" y="229.9" text-anchor="middle" class="seg" fill="#fff">$280</text><rect x="390" y="73.6" width="150" height="116.3" fill="#06B6D4"><title>Sep: DoorDash $451.04 (22 orders)</title></rect><text x="465.0" y="135.8" text-anchor="middle" class="seg" fill="#fff">$451</text><rect x="390" y="56.8" width="150" height="16.8" fill="#9cc3ec"><title>Sep: Uber Eats $65.27 (6 orders)</title></rect><text x="465.0" y="46.8" text-anchor="middle" class="val strong">$796</text><text x="465.0" y="282" text-anchor="middle" class="mon">Sep</text><rect x="650" y="240.5" width="150" height="21.5" fill="#1B51A4"><title>Oct 1–20: Your online ordering $83.45 (6 orders)</title></rect><rect x="650" y="152.6" width="150" height="87.9" fill="#06B6D4"><title>Oct 1–20: DoorDash $341.05 (16 orders)</title></rect><text x="725.0" y="200.5" text-anchor="middle" class="seg" fill="#fff">$341</text><rect x="650" y="145.1" width="150" height="7.4" fill="#9cc3ec"><title>Oct 1–20: Uber Eats $28.84 (2 orders)</title></rect><text x="725.0" y="135.1" text-anchor="middle" class="val strong">$453</text><text x="725.0" y="282" text-anchor="middle" class="mon">Oct 1–20</text><line x1="70" y1="262" x2="860" y2="262" stroke="#94a3b8"/></svg>
+    <div class="legend"><span><i class="dot" style="background:#1B51A4"></i> Your online ordering</span><span><i class="dot" style="background:#06B6D4"></i> DoorDash</span><span><i class="dot" style="background:#9cc3ec"></i> Uber Eats</span></div>
+    <details>
+      <summary>Show the underlying numbers</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Month</th><th style="text-align:right">Your online ordering</th><th style="text-align:right">DoorDash</th><th style="text-align:right">Uber Eats</th><th style="text-align:right">All channels</th></tr></thead>
+          <tbody><tr><td>Aug</td><td class="n">15 &middot; $148.08</td><td class="n">29 &middot; $356.25</td><td class="n">8 &middot; $139.40</td><td class="n">52 &middot; $643.73</td></tr><tr><td>Sep</td><td class="n">16 &middot; $279.70</td><td class="n">22 &middot; $451.04</td><td class="n">6 &middot; $65.27</td><td class="n">44 &middot; $796.01</td></tr><tr><td>Oct 1–20</td><td class="n">6 &middot; $83.45</td><td class="n">16 &middot; $341.05</td><td class="n">2 &middot; $28.84</td><td class="n">24 &middot; $453.34</td></tr><tr class="tot"><td>Total</td><td class="n">37 &middot; $511.23</td><td class="n">67 &middot; $1,148.34</td><td class="n">16 &middot; $233.51</td><td class="n">120 &middot; $1,893.08</td></tr></tbody>
+        </table>
+        <p class="chart-note" style="margin-top:8px">Each cell shows orders &middot; subtotal.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Your platform</p>
+    <h2>Everything Chowly is powering for you</h2>
+    <p>Online orders are one part of the platform. These are the Chowly products live on your account today,
+      and the ones available that you are not using yet.</p>
+  </div>
+  <div class="grid"><div class="prod live"><span class="tag">Live</span><h3>Online ordering website</h3><p>Your own ordering site with pickup and delivery. No marketplace commission on these orders.</p></div><div class="prod live"><span class="tag">Live</span><h3>DoorDash and Uber Eats integration</h3><p>Marketplace orders go straight into your Clover POS, with no tablets or re-keying.</p></div><div class="prod live"><span class="tag">Live</span><h3>Google Search Ads</h3><p>Ads on Google searches for boba and tea around Frisco, managed by Chowly.</p></div><div class="prod live"><span class="tag">Live</span><h3>Email marketing</h3><p>8 campaigns scheduled since September, including National Coffee Day and Sweetest Day offers.</p></div><div class="prod live"><span class="tag">Live</span><h3>Guest surveys and reviews</h3><p>Diners rate their order and can message you directly, so you hear about problems early.</p></div><div class="prod live"><span class="tag">Live</span><h3>Revenue Recovery and Reconciliation</h3><p>We match marketplace payouts to your orders and show the true cost of each channel.</p></div><div class="prod live"><span class="tag">Live</span><h3>Google Business Profile</h3><p>Your profile is linked to your ads, so your location and directions show with them.</p></div><div class="prod avail"><span class="tag">Available</span><h3>Grubhub</h3><p>A third marketplace, sent into Clover the same way as DoorDash and Uber Eats.</p></div><div class="prod avail"><span class="tag">Available</span><h3>Dynamic Pricing</h3><p>Available on your account and not switched on today. Ask us how it works.</p></div></div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Google Search Ads</p>
+    <h2>What your ads are doing</h2>
+    <p>Your ads have run since August 20 at $5 a day, $314.46 in total. These are Google's
+      counts of what people did after seeing or clicking your ads.</p>
+  </div>
+  <div class="tiles"><div class="tile"><div class="tv">17,887</div><div class="tl">Times shown</div></div><div class="tile"><div class="tv">941</div><div class="tl">Clicks</div></div><div class="tile"><div class="tv">364</div><div class="tl">Direction requests</div></div><div class="tile"><div class="tv">202</div><div class="tl">Menu views</div></div><div class="tile"><div class="tv">102</div><div class="tl">Website visits</div></div><div class="tile"><div class="tv">12</div><div class="tl">Calls and call clicks</div></div></div>
+  <div class="note watch">
+    <span class="h">Online orders from ads are not being counted yet</span>
+    When someone clicks your ad and then orders on your site, that order is not being credited back to Google.
+    We found the gap and are working on a fix. Until it is closed we are not reporting a return on ad spend,
+    because the number would be incomplete.
+  </div>
+  <div class="note good">
+    <span class="h">Changes we made on October 21</span>
+    Your ads no longer show on searches for other tea shops such as TP Tea, Feng Cha, Cha Halo and Starbucks,
+    so your budget goes to people looking for what you offer. The Order Online, View Menu and Visit Our Tea
+    House links under your ad now go straight to your ordering page, your menu and your location and hours.
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">What to watch</p>
+    <h2>Uber Eats cancellations are costing you sales</h2>
+  </div>
+  <div class="note watch">
+    <span class="h">18 of 34 Uber Eats orders were cancelled</span>
+    That is $264.39 in sales since August that never reached you. Our support team is
+    looking into it, and it is worth raising with Uber Eats support at the same time.
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Next steps</p>
+    <h2>What we are working on together</h2>
+  </div>
+  <div class="panel tight">
+    <div class="table-wrap"><table class="steps"><tbody><tr><td class="who">Chowly</td><td>Fix how online orders from ad clicks are counted in Google Ads, so we can report a true return on your ad spend.</td></tr><tr><td class="who">Chowly</td><td>Review the keywords Google added to your ads on October 20, and remove any that spend without results, by November 4.</td></tr><tr><td class="who">Chowly</td><td>Investigate the Uber Eats cancellations with our support team.</td></tr><tr><td class="who">Chowly</td><td>Review item prices on your online ordering site against your in-store prices.</td></tr><tr><td class="who">Chowly</td><td>Add your full menu to your website as soon as we receive the menu file.</td></tr><tr><td class="who">TeaLatte Bar</td><td>Send us the menu graphic or PDF for the website.</td></tr><tr><td class="who">TeaLatte Bar</td><td>Turn off DoorDash marketing campaigns that are not paying for themselves.</td></tr><tr><td class="who">Together</td><td>Set a default tip on your online ordering checkout to lift tips.</td></tr></tbody></table></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Method</p>
+    <h2>What these numbers cover</h2>
+  </div>
+  <div class="panel tight">
+    <p style="margin-top:0;font-size:14.5px"><b style="color:var(--heading-navy)">Online orders.</b> From Chowly's
+      order records for completed orders sent to your Clover POS, August 1 through October 20, 2026. Figures are
+      the food and drink subtotal, before tax, tips and delivery fees. Cancelled orders are counted separately.</p>
+    <p style="font-size:14.5px"><b style="color:var(--heading-navy)">Google Ads.</b> From your Google Ads
+      account, August 20 through October 20, 2026. Directions, menu views, website visits and calls are Google's
+      own counts.</p>
+    <p style="font-size:14.5px;margin-bottom:6px"><b style="color:var(--heading-navy)">What this does not
+      measure.</b> This review covers online ordering only. It does not include counter or in-store sales, so it is
+      not a picture of total restaurant revenue.</p>
+  </div>
+</section>
+
+<footer>
+  Prepared by <b>Chowly</b> for TeaLatte Bar &middot; October 21, 2026 &middot; Questions? Reply to Jesse Gorin
+  or raise it on our next sync. &nbsp;chowly.com
+</footer>
+
+</body>
+</html>
